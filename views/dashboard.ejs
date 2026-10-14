@@ -19,11 +19,26 @@
                 font-size: 1.1rem;
             }
         }
+
         @media print {
-            body * { visibility: hidden; }
-            #printableReceipt, #printableReceipt * { visibility: visible; }
-            #printableReceipt { position: absolute; left: 0; top: 0; width: 100%; }
-            .no-print { display: none; }
+            /* Print ထုတ်ချိန်တွင် အခြားသော element အားလုံးကို ဖုံးကွယ်ရန် */
+            body * {
+                visibility: hidden;
+            }
+            /* Printable receipt နှင့် သူ့အတွင်းပါသည့် အရာများကိုသာ ပေါ်စေရန် */
+            #printableReceipt, #printableReceipt * {
+                visibility: visible;
+            }
+            /* စာရွက်၏ အပေါ်ဆုံးနား (Top) တွင် တိုက်ရိုက်စတင်ရန် */
+            #printableReceipt {
+                position: static !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            .no-print {
+                display: none !important;
+            }
         }
     </style>
 </head>
