@@ -60,7 +60,7 @@
                 <h5 class="fw-bold text-secondary mb-0">Financial Analytics</h5>
                 <!-- Dynamic Year Selector -->
                 <form action="/dashboard" method="GET" class="d-flex align-items-center gap-2 mt-2 mt-md-0">
-                    <label class="small fw-bold">Select Year:</label>
+                    <label class="small fw-bold">Select Year :</label>
                     <select name="year" class="form-select form-select-sm" onchange="this.form.submit()">
                         <% analytics.availableYears.forEach(y => { %>
                             <option value="<%= y %>" <%= analytics.selectedYear === y ? 'selected' : '' %>><%= y %></option>
@@ -166,9 +166,9 @@
                             </thead>
                             <tbody id="voucherTableBody">
                                 <% 
-                                const now = new Date();
+                                const now = new Date(new Date().getTime() + (6.5 * 60 * 60 * 1000));
                                 vouchers.forEach(v => { 
-                                    const createdDate = new Date(v.createdAt);
+                                    const createdDate = new Date(new Date(v.createdAt).getTime() + (6.5 * 60 * 60 * 1000));
                                     const expiryDate = new Date(createdDate.getTime() + (v.warrantyDays * 24 * 60 * 60 * 1000));
                                     const isExpired = now > expiryDate;
                                 %>
@@ -199,7 +199,7 @@
         </div>
     </div>
 
-    <!-- Account Settings Modal -->
+    <!-- Account Settings Modal with Logo File Upload -->
     <div class="modal fade" id="accountSettingsModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -207,8 +207,14 @@
                     <h5 class="modal-title">Account Information</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form action="/update-account-info" method="POST">
+                <form action="/update-account-info" method="POST" enctype="multipart/form-data">
                     <div class="modal-body">
+                        <div class="mb-3 text-center">
+                            <% if (user.logoUrl) { %>
+                                <img src="<%= user.logoUrl %>" alt="Current Logo" class="rounded-circle mb-2 shadow-sm" style="width: 70px; height: 70px; object-fit: cover;">
+                            <% } %>
+                            <p class="small text-muted mb-0">Current Logo</p>
+                        </div>
                         <div class="mb-3">
                             <label class="form-label">Account Name</label>
                             <input type="text" class="form-control" value="<%= user.username %>" disabled>
@@ -222,8 +228,8 @@
                             <textarea name="address" class="form-control" rows="2" placeholder="Shop / Company Address"><%= user.address || '' %></textarea>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Logo Image URL</label>
-                            <input type="text" name="logoUrl" class="form-control" value="<%= user.logoUrl || '' %>" placeholder="https://example.com/logo.png">
+                            <label class="form-label">Upload Logo Image</label>
+                            <input type="file" name="logoFile" class="form-control" accept="image/*">
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -306,20 +312,15 @@
     <footer class="bg-dark text-white text-center py-4 mt-5 border-top border-secondary">
         <div class="container">
             <div class="row gy-3 align-items-center">
-                <!-- Left Section: App Name & Info -->
                 <div class="col-md-4 text-md-start">
                     <h6 class="fw-bold mb-1 text-uppercase">Service Voucher System</h6>
                     <p class="text-muted small mb-0">Manage your service vouchers efficiently & securely.</p>
                 </div>
-                
-                <!-- Middle Section: Copyright -->
                 <div class="col-md-4 text-center">
                     <p class="small text-secondary mb-0">
                         &copy; <%= new Date().getFullYear() %> <strong><%= user.username %></strong>. All Rights Reserved.
                     </p>
                 </div>
-
-                <!-- Right Section: Developed By / Links -->
                 <div class="col-md-4 text-md-end">
                     <p class="small text-white mb-0">
                         Powered by <span class="text-info fw-semibold">AKM</span>
@@ -405,7 +406,7 @@
         function openDetailModal(voucher) {
             document.getElementById('modalVoucherId').innerText = voucher.voucherId;
             document.getElementById('modalCustomerName').innerText = voucher.customerName;
-            document.getElementById('modalDate').innerText = new Date(voucher.createdAt).toLocaleDateString();
+            document.getElementById('modalDate').innerText = voucher.formattedDate;
             document.getElementById('modalTotalPrice').innerText = voucher.totalPrice.toLocaleString() + ' Ks';
             document.getElementById('modalWarranty').innerText = voucher.warrantyDays + ' Days';
 
@@ -425,10 +426,8 @@
             detailModal.show();
         }
 
-        // Realtime update (Note: Page refresh may be needed or dynamically update analytics if required)
         socket.on('voucherUpdated', (data) => {
             if (data.userId === currentUserId) {
-                // Voucher အသစ်ထည့်လိုက်ပါက Analytics များနှင့် Table ကို အလိုအလျောက် update ဖြစ်ရန် Page ကို Refresh လုပ်ပေးခြင်း (သို့မဟုတ် Data ပြန်ထည့်ခြင်း)
                 location.reload();
             }
         });
