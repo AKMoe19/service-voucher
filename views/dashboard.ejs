@@ -204,14 +204,14 @@
                         <% if (user.phone) { %><p class="mb-0 text-muted fw-bold small">Phone : <%= user.phone %></p><% } %>
                         <hr>
                         <h5 class="fw-bold">SERVICE VOUCHER RECEIPT</h5>
-                        <p class="text-muted small">Voucher ID: <strong id="modalVoucherId"></strong></p>
+                        <p class="text-muted small">Voucher ID : <strong id="modalVoucherId"></strong></p>
                     </div>
                     <div class="row mb-3 small">
                         <div class="col-6">
-                            <p class="mb-0"><strong>Customer Name:</strong> <span id="modalCustomerName"></span></p>
+                            <p class="mb-0"><strong>Customer Name :</strong> <span id="modalCustomerName"></span></p>
                         </div>
                         <div class="col-6 text-end">
-                            <p class="mb-0"><strong>Date:</strong> <span id="modalDate"></span></p>
+                            <p class="mb-0"><strong>Date :</strong> <span id="modalDate"></span></p>
                         </div>
                     </div>
                     <div class="table-responsive">
@@ -233,7 +233,17 @@
                         </table>
                     </div>
                     <div class="mt-3 small">
-                        <p class="mb-0"><strong>Warranty Period:</strong> <span id="modalWarranty"></span></p>
+                        <p class="mb-0"><strong>Warranty Period :</strong> <span id="modalWarranty" class="text-danger"></span></p>
+                    </div>
+                    <hr>
+                    <div class="termcondition">
+                        <h5>Term & Condition</h5>
+                        <ul>
+                            <li>Warranty ကုန်နေသော ဝန်ဆောင်မှုများ တာဝန်ယူဖြေရှင်းပေးမည်မဟုတ်</li>
+                            <li>ပြုပြင်ပေးထားသောအပိုင်းမှလွဲ၍ တခြားအစိတ်အပိုင်းများအတွက် တာဝန်ယူမည်မဟုတ်ပါ</li>
+                            <li>အပ်နှံထားသော စက်များ ရက် ၃၀ ကျော်လျှင် တာမယူပါ</li>
+                            <li>စက်များကိုရွေးလျှင် တခါထဲ စစ်သွားပါ...</li>
+                        </ul>
                     </div>
                 </div>
                 <div class="modal-footer">
