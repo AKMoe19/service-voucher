@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Service Voucher</title>
+    <title>Dashboard - Service Voucher System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         .shop-logo {
             max-height: 70px;
             object-fit: contain;
         }
-        /* Mobile screen တွေမှာ Padding/Margin တွေကို ညှိပေးရန် */
         @media (max-width: 768px) {
             .card {
                 margin-bottom: 20px;
@@ -19,31 +18,21 @@
                 font-size: 1.1rem;
             }
         }
-
         @media print {
-            /* Print ထုတ်ချိန်တွင် အခြားသော element အားလုံးကို ဖုံးကွယ်ရန် */
-            body * {
-                visibility: hidden;
-            }
-            /* Printable receipt နှင့် သူ့အတွင်းပါသည့် အရာများကိုသာ ပေါ်စေရန် */
-            #printableReceipt, #printableReceipt * {
-                visibility: visible;
-            }
-            /* စာရွက်၏ အပေါ်ဆုံးနား (Top) တွင် တိုက်ရိုက်စတင်ရန် */
-            #printableReceipt {
+            body * { visibility: hidden; }
+            #printableReceipt, #printableReceipt * { visibility: visible; }
+            #printableReceipt { 
                 position: static !important;
                 width: 100% !important;
                 margin: 0 !important;
                 padding: 0 !important;
             }
-            .no-print {
-                display: none !important;
-            }
+            .no-print { display: none !important; }
         }
     </style>
 </head>
 <body class="bg-light">
-    <!-- Navbar (Responsive for Mobile & Desktop) -->
+    <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-3 px-md-4">
         <a class="navbar-brand" href="#">Service Voucher App</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -64,11 +53,56 @@
     </nav>
 
     <div class="container-fluid px-3 px-md-4 my-4">
+        
+        <!-- Analytics Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-12 mb-2 d-flex justify-content-between align-items-center flex-wrap">
+                <h5 class="fw-bold text-secondary mb-0">Financial Analytics</h5>
+                <!-- Dynamic Year Selector -->
+                <form action="/dashboard" method="GET" class="d-flex align-items-center gap-2 mt-2 mt-md-0">
+                    <label class="small fw-bold">Select Year:</label>
+                    <select name="year" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <% analytics.availableYears.forEach(y => { %>
+                            <option value="<%= y %>" <%= analytics.selectedYear === y ? 'selected' : '' %>><%= y %></option>
+                        <% }) %>
+                    </select>
+                </form>
+            </div>
+
+            <div class="col-xl-3 col-md-6 col-12 mb-3">
+                <div class="card shadow-sm border-0 bg-primary text-white p-3">
+                    <h6 class="text-uppercase small fw-bold">Daily Income (Today)</h6>
+                    <h3 class="fw-bold mb-0"><%= analytics.dailyTotal.toLocaleString() %> Ks</h3>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6 col-12 mb-3">
+                <div class="card shadow-sm border-0 bg-success text-white p-3">
+                    <h6 class="text-uppercase small fw-bold">Weekly Income (7 Days)</h6>
+                    <h3 class="fw-bold mb-0"><%= analytics.weeklyTotal.toLocaleString() %> Ks</h3>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6 col-12 mb-3">
+                <div class="card shadow-sm border-0 bg-warning text-dark p-3">
+                    <h6 class="text-uppercase small fw-bold">Monthly Income (This Month)</h6>
+                    <h3 class="fw-bold mb-0"><%= analytics.monthlyTotal.toLocaleString() %> Ks</h3>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6 col-12 mb-3">
+                <div class="card shadow-sm border-0 bg-dark text-white p-3">
+                    <h6 class="text-uppercase small fw-bold">Yearly Income (<%= analytics.selectedYear %>)</h6>
+                    <h3 class="fw-bold mb-0"><%= analytics.yearlyTotal.toLocaleString() %> Ks</h3>
+                </div>
+            </div>
+        </div>
+
         <!-- Search Bar -->
         <div class="row mb-4">
             <div class="col-12">
                 <form action="/dashboard" method="GET" class="input-group shadow-sm">
                     <input type="text" name="search" class="form-control" placeholder="Search by Voucher ID (e.g. VOC-123456)..." value="<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>">
+                    <% if (analytics.selectedYear) { %>
+                        <input type="hidden" name="year" value="<%= analytics.selectedYear %>">
+                    <% } %>
                     <button class="btn btn-dark" type="submit">Search</button>
                     <a href="/dashboard" class="btn btn-secondary">Reset</a>
                 </form>
@@ -76,7 +110,7 @@
         </div>
 
         <div class="row">
-            <!-- Voucher Form (Desktop မှာ 4 cols, Tablet/Mobile မှာ 12 cols ယူမည်) -->
+            <!-- Voucher Form -->
             <div class="col-lg-4 col-12 mb-4">
                 <div class="card shadow p-3 border-0">
                     <h5 class="mb-3 text-primary">Create Service Voucher</h5>
@@ -115,7 +149,7 @@
                 </div>
             </div>
 
-            <!-- Voucher List Table (Desktop မှာ 8 cols, Tablet/Mobile မှာ 12 cols ယူမည်၊ Responsive Table သုံးထားပါသည်) -->
+            <!-- Voucher List Table -->
             <div class="col-lg-8 col-12">
                 <div class="card shadow p-3 border-0">
                     <h5 class="mb-3 text-primary">My Service Vouchers</h5>
@@ -141,7 +175,7 @@
                                 <tr>
                                     <td><%= v.voucherId %></td>
                                     <td><%= v.customerName %></td>
-                                    <td><%= v.totalPrice %> Ks</td>
+                                    <td><%= v.totalPrice.toLocaleString() %> Ks</td>
                                     <td>
                                         <% if (isExpired) { %>
                                             <span class="badge bg-danger">Expired</span>
@@ -214,19 +248,18 @@
                         <% if (user.logoUrl) { %>
                             <img src="<%= user.logoUrl %>" alt="Shop Logo" class="shop-logo mb-2">
                         <% } %>
-                        <h4 class="mb-1"><%= user.username %></h4>
                         <% if (user.address) { %><p class="mb-1 text-muted small"><%= user.address %></p><% } %>
-                        <% if (user.phone) { %><p class="mb-0 text-muted fw-bold small">Phone : <%= user.phone %></p><% } %>
+                        <% if (user.phone) { %><p class="mb-0 text-muted small">Phone : <%= user.phone %></p><% } %>
                         <hr>
                         <h5 class="fw-bold">SERVICE VOUCHER RECEIPT</h5>
-                        <p class="text-muted small">Voucher ID : <strong id="modalVoucherId"></strong></p>
+                        <p class="text-muted small">Voucher ID: <strong id="modalVoucherId"></strong></p>
                     </div>
                     <div class="row mb-3 small">
                         <div class="col-6">
-                            <p class="mb-0"><strong>Customer Name :</strong> <span id="modalCustomerName"></span></p>
+                            <p class="mb-0"><strong>Customer Name:</strong> <span id="modalCustomerName"></span></p>
                         </div>
                         <div class="col-6 text-end">
-                            <p class="mb-0"><strong>Date :</strong> <span id="modalDate"></span></p>
+                            <p class="mb-0"><strong>Date:</strong> <span id="modalDate"></span></p>
                         </div>
                     </div>
                     <div class="table-responsive">
@@ -251,13 +284,13 @@
                         <p class="mb-0"><strong>Warranty Period :</strong> <span id="modalWarranty" class="text-danger"></span></p>
                     </div>
                     <hr>
-                    <div class="termcondition">
-                        <h5>Term & Condition</h5>
-                        <ul>
-                            <li>Warranty ကုန်နေသော ဝန်ဆောင်မှုများ တာဝန်ယူဖြေရှင်းပေးမည်မဟုတ်</li>
-                            <li>ပြုပြင်ပေးထားသောအပိုင်းမှလွဲ၍ တခြားအစိတ်အပိုင်းများအတွက် တာဝန်ယူမည်မဟုတ်ပါ</li>
-                            <li>အပ်နှံထားသော စက်များ ရက် ၃၀ ကျော်လျှင် တာမယူပါ</li>
-                            <li>စက်များကိုရွေးလျှင် တခါထဲ စစ်သွားပါ...</li>
+                    <div class="termcondition small">
+                        <p class="fw-bold mb-1">Term & Condition</p>
+                        <ul class="mb-0 ps-3">
+                            <li>Warranty ကုန်နေသော ဝန်ဆောင်မှုများ တာဝန်ယူဖြေရှင်းပေးမည်မဟုတ်။</li>
+                            <li>ပြုပြင်ပေးထားသောအပိုင်းမှလွဲ၍ တခြားအစိတ်အပိုင်းများအတွက် တာဝန်ယူမည်မဟုတ်ပါ။</li>
+                            <li>အပ်နှံထားသော စက်များ ရက် ၃၀ ကျော်လျှင် တာဝန်မယူပါ။</li>
+                            <li>စက်များကိုလက်ခံရယူစဉ် တခါတည်း စစ်ဆေးသွားပါ။</li>
                         </ul>
                     </div>
                 </div>
@@ -346,7 +379,7 @@
             document.getElementById('modalVoucherId').innerText = voucher.voucherId;
             document.getElementById('modalCustomerName').innerText = voucher.customerName;
             document.getElementById('modalDate').innerText = new Date(voucher.createdAt).toLocaleDateString();
-            document.getElementById('modalTotalPrice').innerText = voucher.totalPrice + ' Ks';
+            document.getElementById('modalTotalPrice').innerText = voucher.totalPrice.toLocaleString() + ' Ks';
             document.getElementById('modalWarranty').innerText = voucher.warrantyDays + ' Days';
 
             const itemsList = document.getElementById('modalItemsList');
@@ -356,7 +389,7 @@
                     <tr>
                         <td>${index + 1}</td>
                         <td>${item.serviceItem}</td>
-                        <td class="text-end">${item.price} Ks</td>
+                        <td class="text-end">${item.price.toLocaleString()} Ks</td>
                     </tr>
                 `;
             });
@@ -365,38 +398,11 @@
             detailModal.show();
         }
 
+        // Realtime update (Note: Page refresh may be needed or dynamically update analytics if required)
         socket.on('voucherUpdated', (data) => {
             if (data.userId === currentUserId) {
-                const tbody = document.getElementById('voucherTableBody');
-                tbody.innerHTML = '';
-                const now = new Date();
-
-                data.vouchers.forEach(v => {
-                    const createdDate = new Date(v.createdAt);
-                    const expiryDate = new Date(createdDate.getTime() + (v.warrantyDays * 24 * 60 * 60 * 1000));
-                    const isExpired = now > expiryDate;
-                    const daysLeft = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
-
-                    let badgeHTML = isExpired 
-                        ? '<span class="badge bg-danger">Expired</span>' 
-                        : `<span class="badge bg-success">Active (${daysLeft}d left)</span>`;
-
-                    let row = `
-                        <tr>
-                            <td>${v.voucherId}</td>
-                            <td>${v.customerName}</td>
-                            <td>${v.totalPrice} Ks</td>
-                            <td>${badgeHTML}</td>
-                            <td>
-                                <div class="d-flex justify-content-center gap-1">
-                                    <button class="btn btn-info btn-sm text-white px-2 py-1" onclick='openDetailModal(${JSON.stringify(v)})'>Detail</button>
-                                    <button class="btn btn-danger btn-sm px-2 py-1" onclick="deleteVoucher('${v._id}')">Delete</button>
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                    tbody.innerHTML += row;
-                });
+                // Voucher အသစ်ထည့်လိုက်ပါက Analytics များနှင့် Table ကို အလိုအလျောက် update ဖြစ်ရန် Page ကို Refresh လုပ်ပေးခြင်း (သို့မဟုတ် Data ပြန်ထည့်ခြင်း)
+                location.reload();
             }
         });
     </script>
