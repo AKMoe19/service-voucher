@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - Service Voucher System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .shop-logo {
+            max-height: 80px;
+            object-fit: contain;
+        }
+        @media print {
+            body * { visibility: hidden; }
+            #printableReceipt, #printableReceipt * { visibility: visible; }
+            #printableReceipt { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-4">
+        <a class="navbar-brand" href="#">Service Voucher App</a>
+        <div class="ms-auto text-white d-flex align-items-center">
+            <% if (user.logoUrl) { %>
+                <img src="<%= user.logoUrl %>" alt="Logo" class="rounded-circle me-2" style="width: 35px; height: 35px; object-fit: cover;">
+            <% } %>
+            <span>Welcome, <strong><%= user.username %></strong></span>
+            <button class="btn btn-outline-info btn-sm ms-3" data-bs-toggle="modal" data-bs-target="#accountSettingsModal">Account Settings</button>
+            <a href="/logout" class="btn btn-outline-light btn-sm ms-2">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container my-4">
+        <!-- Search Bar -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <form action="/dashboard" method="GET" class="input-group shadow-sm">
+                    <input type="text" name="search" class="form-control" placeholder="Search by Voucher ID (e.g. VOC-123456)..." value="<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>">
+                    <button class="btn btn-dark" type="submit">Search</button>
+                    <a href="/dashboard" class="btn btn-secondary">Reset</a>
+                </form>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Voucher Form -->
+            <div class="col-md-4">
+                <div class="card shadow p-3">
+                    <h5 class="mb-3">Create Service Voucher</h5>
+                    <form id="voucherForm">
+                        <input type="hidden" id="userId" value="<%= user._id %>">
+                        <input type="hidden" id="username" value="<%= user.username %>">
+                        
+                        <div class="mb-2">
+                            <label class="form-label">Company Name (Account)</label>
+                            <input type="text" class="form-control" value="<%= user.username %>" disabled>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Customer Name</label>
+                            <input type="text" id="customerName" class="form-control" required>
+                        </div>
+
+                        <!-- Dynamic Items Container -->
+                        <div class="mb-2">
+                            <label class="form-label">Service Items & Prices</label>
+                            <div id="itemsContainer">
+                                <div class="input-group mb-2 item-row">
+                                    <input type="text" class="form-control serviceItem" placeholder="Item/Service Name" required>
+                                    <input type="number" class="form-control price" placeholder="Price" required>
+                                    <button type="button" class="btn btn-outline-danger remove-item" disabled>-</button>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-secondary w-100 mt-1" id="addItemBtn">+ Add More Item</button>
+                        </div>
+
+                        <div class="mb-3 mt-3">
+                            <label class="form-label">Warranty Period (Days)</label>
+                            <input type="number" id="warrantyDays" class="form-control" placeholder="e.g. 30 days" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Save Voucher</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Voucher List Table -->
+            <div class="col-md-8">
+                <div class="card shadow p-3">
+                    <h5 class="mb-3">My Service Vouchers</h5>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped text-center align-middle">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Voucher ID</th>
+                                    <th>Customer</th>
+                                    <th>Total Price</th>
+                                    <th>Warranty Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="voucherTableBody">
+                                <% 
+                                const now = new Date();
+                                vouchers.forEach(v => { 
+                                    const createdDate = new Date(v.createdAt);
+                                    const expiryDate = new Date(createdDate.getTime() + (v.warrantyDays * 24 * 60 * 60 * 1000));
+                                    const isExpired = now > expiryDate;
+                                %>
+                                <tr>
+                                    <td><%= v.voucherId %></td>
+                                    <td><%= v.customerName %></td>
+                                    <td><%= v.totalPrice %> Ks</td>
+                                    <td>
+                                        <% if (isExpired) { %>
+                                            <span class="badge bg-danger">Expired</span>
+                                        <% } else { %>
+                                            <span class="badge bg-success">Active (<%= Math.ceil((expiryDate - now)/(1000*60*60*24)) %>d left)</span>
+                                        <% } %>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-info btn-sm text-white" onclick='openDetailModal(<%= JSON.stringify(v) %>)'>Detail</button>
+                                        <button class="btn btn-danger btn-sm" onclick="deleteVoucher('<%= v._id %>')">Delete</button>
+                                    </td>
+                                </tr>
+                                <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Account Settings Modal -->
+    <div class="modal fade" id="accountSettingsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Account Information</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="/update-account-info" method="POST">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Account Name</label>
+                            <input type="text" class="form-control" value="<%= user.username %>" disabled>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Phone Number</label>
+                            <input type="text" name="phone" class="form-control" value="<%= user.phone || '' %>" placeholder="09xxxxxxxxx">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Address</label>
+                            <textarea name="address" class="form-control" rows="2" placeholder="Shop / Company Address"><%= user.address || '' %></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Logo Image URL</label>
+                            <input type="text" name="logoUrl" class="form-control" value="<%= user.logoUrl || '' %>" placeholder="https://example.com/logo.png">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Voucher Detail & Receipt Modal -->
+    <div class="modal fade" id="voucherDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Voucher Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="printableReceipt">
+                    <div class="text-center mb-4">
+                        <% if (user.logoUrl) { %>
+                            <img src="<%= user.logoUrl %>" alt="Shop Logo" class="shop-logo mb-2">
+                        <% } %>
+                        <!-- <h3 class="mb-1"><%= user.username %></h3> -->
+                        <% if (user.address) { %><p class="mb-1 text-muted fw-bold"><%= user.address %></p><% } %>
+                        <% if (user.phone) { %><p class="mb-0 fw-bold">Phone : <%= user.phone %></p><% } %>
+                        <hr>
+                        <h4>SERVICE VOUCHER RECEIPT</h4>
+                        <p class="text-muted">Voucher ID: <strong id="modalVoucherId"></strong></p>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <p><strong>Customer Name:</strong> <span id="modalCustomerName"></span></p>
+                        </div>
+                        <div class="col-6 text-end">
+                            <p><strong>Date:</strong> <span id="modalDate"></span></p>
+                        </div>
+                    </div>
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>No.</th>
+                                <th>Service / Item Description</th>
+                                <th class="text-end">Price</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalItemsList"></tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="2" class="text-end">Total Amount:</th>
+                                <th class="text-end" id="modalTotalPrice"></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    <div class="mt-3">
+                        <p><strong>Warranty Period:</strong> <span id="modalWarranty" class="text-danger"></span></p>
+                    </div>
+                    <hr>
+                    <div class="termcondition">
+                        <h5>Term & Condition</h5>
+                        <ul>
+                            <li>Warranty ကုန်နေသော ဝန်ဆောင်မှုများ တာဝန်ယူဖြေရှင်းပေးမည်မဟုတ်</li>
+                            <li>ပြုပြင်ပေးထားသောအပိုင်းမှလွဲ၍ တခြားအစိတ်အပိုင်းများအတွက် တာဝန်ယူမည်မဟုတ်ပါ</li>
+                            <li>အပ်နှံထားသော စက်များ ရက် ၃၀ ကျော်လျှင် တာမယူပါ</li>
+                            <li>စက်များကိုရွေးလျှင် တခါထဲ စစ်သွားပါ...</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success no-print" onclick="window.print()">Print Receipt</button>
+                    <button type="button" class="btn btn-secondary no-print" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS & Socket.IO -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const currentUserId = document.getElementById('userId').value;
+
+        // Dynamic Item Add/Remove
+        document.getElementById('addItemBtn').addEventListener('click', () => {
+            const container = document.getElementById('itemsContainer');
+            const row = document.createElement('div');
+            row.className = 'input-group mb-2 item-row';
+            row.innerHTML = `
+                <input type="text" class="form-control serviceItem" placeholder="Item/Service Name" required>
+                <input type="number" class="form-control price" placeholder="Price" required>
+                <button type="button" class="btn btn-outline-danger remove-item">-</button>
+            `;
+            container.appendChild(row);
+            updateRemoveButtons();
+        });
+
+        document.getElementById('itemsContainer').addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-item')) {
+                e.target.closest('.item-row').remove();
+                updateRemoveButtons();
+            }
+        });
+
+        function updateRemoveButtons() {
+            const rows = document.querySelectorAll('.item-row');
+            rows.forEach((row, index) => {
+                const btn = row.querySelector('.remove-item');
+                btn.disabled = rows.length === 1;
+            });
+        }
+
+        // Form Submission
+        const voucherForm = document.getElementById('voucherForm');
+        voucherForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const items = [];
+            document.querySelectorAll('.item-row').forEach(row => {
+                items.push({
+                    serviceItem: row.querySelector('.serviceItem').value,
+                    price: row.querySelector('.price').value
+                });
+            });
+
+            const data = {
+                userId: currentUserId,
+                username: document.getElementById('username').value,
+                customerName: document.getElementById('customerName').value,
+                items: items,
+                warrantyDays: document.getElementById('warrantyDays').value
+            };
+            socket.emit('createVoucher', data);
+            voucherForm.reset();
+            document.getElementById('itemsContainer').innerHTML = `
+                <div class="input-group mb-2 item-row">
+                    <input type="text" class="form-control serviceItem" placeholder="Item/Service Name" required>
+                    <input type="number" class="form-control price" placeholder="Price" required>
+                    <button type="button" class="btn btn-outline-danger remove-item" disabled>-</button>
+                </div>
+            `;
+        });
+
+        function deleteVoucher(voucherId) {
+            if(confirm('Are you sure you want to delete this voucher?')) {
+                socket.emit('deleteVoucher', { voucherId, userId: currentUserId });
+            }
+        }
+
+        function openDetailModal(voucher) {
+            document.getElementById('modalVoucherId').innerText = voucher.voucherId;
+            document.getElementById('modalCustomerName').innerText = voucher.customerName;
+            document.getElementById('modalDate').innerText = new Date(voucher.createdAt).toLocaleDateString();
+            document.getElementById('modalTotalPrice').innerText = voucher.totalPrice + ' Ks';
+            document.getElementById('modalWarranty').innerText = voucher.warrantyDays + ' Days';
+
+            const itemsList = document.getElementById('modalItemsList');
+            itemsList.innerHTML = '';
+            voucher.items.forEach((item, index) => {
+                itemsList.innerHTML += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${item.serviceItem}</td>
+                        <td class="text-end">${item.price} Ks</td>
+                    </tr>
+                `;
+            });
+
+            const detailModal = new bootstrap.Modal(document.getElementById('voucherDetailModal'));
+            detailModal.show();
+        }
+
+        socket.on('voucherUpdated', (data) => {
+            if (data.userId === currentUserId) {
+                const tbody = document.getElementById('voucherTableBody');
+                tbody.innerHTML = '';
+                const now = new Date();
+
+                data.vouchers.forEach(v => {
+                    const createdDate = new Date(v.createdAt);
+                    const expiryDate = new Date(createdDate.getTime() + (v.warrantyDays * 24 * 60 * 60 * 1000));
+                    const isExpired = now > expiryDate;
+                    const daysLeft = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
+
+                    let badgeHTML = isExpired 
+                        ? '<span class="badge bg-danger">Expired</span>' 
+                        : `<span class="badge bg-success">Active (${daysLeft}d left)</span>`;
+
+                    let row = `
+                        <tr>
+                            <td>${v.voucherId}</td>
+                            <td>${v.customerName}</td>
+                            <td>${v.totalPrice} Ks</td>
+                            <td>${badgeHTML}</td>
+                            <td>
+                                <button class="btn btn-info btn-sm text-white" onclick='openDetailModal(${JSON.stringify(v)})'>Detail</button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteVoucher('${v._id}')">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            }
+        });
+    </script>
+</body>
+</html>
