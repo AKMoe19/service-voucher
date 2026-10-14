@@ -89,39 +89,81 @@ app.post('/update-account-info', isAuthenticated, async (req, res) => {
     }
 });
 
-// Dashboard Route တွင် User Data အပြည့်အစုံ ဆွဲထုတ်ပေးခြင်း
 app.get('/dashboard', isAuthenticated, async (req, res) => {
     try {
         const currentUser = await User.findById(req.session.user.id);
         const searchQuery = req.query.search || '';
-        let queryFilter = { userId: req.session.user.id };
+        const selectedYear = req.query.year ? Number(req.query.year) : new Date().getFullYear();
         
+        let queryFilter = { userId: req.session.user.id };
         if (searchQuery) {
             queryFilter.voucherId = { $regex: searchQuery, $options: 'i' };
         }
 
         const vouchers = await Voucher.find(queryFilter).sort({ createdAt: -1 });
-        res.render('dashboard', { user: currentUser, vouchers, searchQuery });
+
+        // --- Analytics Calculations (Isolated per Account) ---
+        const userAllVouchers = await Voucher.find({ userId: req.session.user.id });
+        
+        // Auto Dynamic Years (Database ထဲမှာရှိတဲ့ Voucher တွေဆီက Year တွေကို ယူမည်)
+        const yearsSet = new Set();
+        userAllVouchers.forEach(v => {
+            yearsSet.add(new Date(v.createdAt).getFullYear());
+        });
+        let availableYears = Array.from(yearsSet).sort((a, b) => b - a);
+        if (availableYears.length === 0) availableYears = [new Date().getFullYear()];
+
+        let dailyTotal = 0;
+        let weeklyTotal = 0;
+        let monthlyTotal = 0;
+        let yearlyTotal = 0;
+
+        const now = new Date();
+        const todayStr = now.toDateString();
+
+        // One week ago & current month/year helper
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(now.getDate() - 7);
+
+        userAllVouchers.forEach(v => {
+            const vDate = new Date(v.createdAt);
+            
+            // Daily (ယနေ့အတွက် စုစုပေါင်း)
+            if (vDate.toDateString() === todayStr) {
+                dailyTotal += v.totalPrice;
+            }
+
+            // Weekly (လွန်ခဲ့သော ၇ ရက်အတွင်း)
+            if (vDate >= oneWeekAgo && vDate <= now) {
+                weeklyTotal += v.totalPrice;
+            }
+
+            // Monthly (ယခုလက်ရှိလနှင့် ယခုနှစ်အတွက်)
+            if (vDate.getMonth() === now.getMonth() && vDate.getFullYear() === now.getFullYear()) {
+                monthlyTotal += v.totalPrice;
+            }
+
+            // Yearly (ရွေးချယ်ထားသော Year အတွက်)
+            if (vDate.getFullYear() === selectedYear) {
+                yearlyTotal += v.totalPrice;
+            }
+        });
+
+        const analytics = {
+            dailyTotal,
+            weeklyTotal,
+            monthlyTotal,
+            yearlyTotal,
+            availableYears,
+            selectedYear
+        };
+
+        res.render('dashboard', { user: currentUser, vouchers, searchQuery, analytics });
     } catch (err) {
+        console.error(err);
         res.status(500).send('Server Error');
     }
 });
-
-// app.get('/dashboard', isAuthenticated, async (req, res) => {
-//     try {
-//         const searchQuery = req.query.search || '';
-//         let queryFilter = { userId: req.session.user.id };
-        
-//         if (searchQuery) {
-//             queryFilter.voucherId = { $regex: searchQuery,$options: 'i' };
-//         }
-
-//         const vouchers = await Voucher.find(queryFilter).sort({ createdAt: -1 });
-//         res.render('dashboard', { user: req.session.user, vouchers, searchQuery });
-//     } catch (err) {
-//         res.status(500).send('Server Error');
-//     }
-// });
 
 // Socket.IO
 io.on('connection', (socket) => {
